@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">HR & Finance</p>
+                <h1>Payroll Management System</h1>
+            </div>
+            <button id="resetDataBtn" class="secondary-btn">Reset Data</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="employees">Employees</button>
+            <button class="tab-btn" data-tab="payroll">Payroll</button>
+            <button class="tab-btn" data-tab="reports">Reports</button>
+        </nav>
+
+        <main class="dashboard">
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card accent-blue">
+                        <span>Total Employees</span>
+                        <strong id="totalEmployees">0</strong>
+                    </div>
+                    <div class="stat-card accent-green">
+                        <span>Gross Payroll</span>
+                        <strong id="grossPayroll">$0</strong>
+                    </div>
+                    <div class="stat-card accent-orange">
+                        <span>Total Deductions</span>
+                        <strong id="totalDeductions">$0</strong>
+                    </div>
+                    <div class="stat-card accent-purple">
+                        <span>Net Payroll</span>
+                        <strong id="netPayroll">$0</strong>
+                    </div>
+                </div>
+
+                <div class="panels-row">
+                    <div class="panel half">
+                        <h2>Department Distribution</h2>
+                        <div id="deptChart" class="chart"></div>
+                    </div>
+                    <div class="panel half">
+                        <h2>Salary Range</h2>
+                        <div id="salaryChart" class="chart"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Employees Tab -->
+            <section id="employees" class="tab-content">
+                <div class="panel form-panel">
+                    <div class="section-heading">
+                        <h2>Add Employee</h2>
+                    </div>
+
+                    <form id="employeeForm">
+                        <div class="form-grid">
+                            <label>
+                                Full Name
+                                <input type="text" id="name" placeholder="e.g. Sarah Johnson" required />
+                            </label>
+
+                            <label>
+                                Department
+                                <select id="department" required>
+                                    <option value="">Select Department</option>
+                                    <option value="Engineering">Engineering</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="HR">Human Resources</option>
+                                    <option value="Sales">Sales</option>
+                                    <option value="Marketing">Marketing</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                Email
+                                <input type="email" id="email" placeholder="employee@company.com" required />
+                            </label>
+
+                            <label>
+                                Employee ID
+                                <input type="text" id="employeeId" placeholder="EMP001" required />
+                            </label>
+
+                            <label>
+                                Base Salary
+                                <input type="number" id="baseSalary" min="0" step="0.01" placeholder="5000" required />
+                            </label>
+
+                            <label>
+                                Overtime Pay
+                                <input type="number" id="overtime" min="0" step="0.01" placeholder="250" />
+                            </label>
+
+                            <label>
+                                Bonus
+                                <input type="number" id="bonus" min="0" step="0.01" placeholder="300" />
+                            </label>
+
+                            <label>
+                                Allowances
+                                <input type="number" id="allowances" min="0" step="0.01" placeholder="100" />
+                            </label>
+
+                            <label>
+                                Other Deductions
+                                <input type="number" id="deductions" min="0" step="0.01" placeholder="200" />
+                            </label>
+
+                            <label>
+                                Tax Rate (%)
+                                <input type="number" id="taxRate" min="0" max="100" step="0.01" value="12.5" />
+                            </label>
+
+                            <label>
+                                Health Insurance
+                                <input type="number" id="healthInsurance" min="0" step="0.01" placeholder="150" />
+                            </label>
+
+                            <label>
+                                Pay Period
+                                <select id="payPeriod">
+                                    <option value="Monthly">Monthly</option>
+                                    <option value="Bi-Weekly">Bi-Weekly</option>
+                                    <option value="Weekly">Weekly</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="primary-btn">Add Employee</button>
+                    </form>
+                </div>
+
+                <div class="panel table-panel">
+                    <div class="section-heading">
+                        <h2>Employee List</h2>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Email</th>
+                                    <th>Base Salary</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeeTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payroll Tab -->
+            <section id="payroll" class="tab-content">
+                <div class="panel">
+                    <div class="section-heading">
+                        <h2>Employee Payroll Details</h2>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>
+                            Filter by Department:
+                            <select id="deptFilter">
+                                <option value="">All Departments</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Base</th>
+                                    <th>Overtime</th>
+                                    <th>Bonus</th>
+                                    <th>Allowances</th>
+                                    <th>Gross</th>
+                                    <th>Tax</th>
+                                    <th>Insurance</th>
+                                    <th>Deductions</th>
+                                    <th>Net Pay</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payrollTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Tab -->
+            <section id="reports" class="tab-content">
+                <div class="panel">
+                    <div class="section-heading">
+                        <h2>Payslips & Reports</h2>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>
+                            Select Month:
+                            <input type="month" id="monthPicker" />
+                        </label>
+                    </div>
+                </div>
+
+                <div id="payslipList" class="payslip-grid"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for Employee Details -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Employee Details</h2>
+            <div id="employeeDetails"></div>
+            <div class="modal-actions">
+                <button id="editBtn" class="primary-btn">Edit</button>
+                <button id="deleteBtn" class="danger-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Edit Employee -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close edit-close">&times;</span>
+            <h2>Edit Employee</h2>
+            <form id="editForm">
+                <div class="form-grid">
+                    <label>
+                        Full Name
+                        <input type="text" id="editName" required />
+                    </label>
+                    <label>
+                        Department
+                        <select id="editDept" required>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Finance">Finance</option>
+                            <option value="HR">Human Resources</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Marketing">Marketing</option>
+                        </select>
+                    </label>
+                    <label>
+                        Base Salary
+                        <input type="number" id="editBaseSalary" min="0" step="0.01" required />
+                    </label>
+                    <label>
+                        Tax Rate (%)
+                        <input type="number" id="editTaxRate" min="0" max="100" step="0.01" required />
+                    </label>
+                </div>
+                <button type="submit" class="primary-btn">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
