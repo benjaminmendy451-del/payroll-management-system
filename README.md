@@ -1,66 +1,52 @@
 # Payroll Management System
 
-A comprehensive automated payroll management web application built with HTML, CSS, and JavaScript.
+A full-stack payroll management application with:
+- secure admin login
+- employee management
+- payroll computation and summaries
+- payslips and PDF export
+- SQLite database persistence
+- Express backend API
 
-## Features
+## Default login
+- Username: `admin`
+- Password: `admin123`
 
-### Dashboard
-- Real-time payroll summary statistics
-- Department distribution chart
-- Salary range analysis
-- Total employees, gross payroll, deductions, and net payroll displays
+## Run locally
 
-### Employee Management
-- Add new employees with detailed information
-- View complete employee database
-- Edit employee details
-- Delete employees
-- Support for multiple departments
-
-### Payroll Processing
-- Automatic salary calculations
-- Base salary, overtime, bonuses, and allowances tracking
-- Tax calculations (customizable rates)
-- Health insurance deductions
-- Other deductions tracking
-- Department-based filtering
-
-### Payslips & Reports
-- Generate individual payslips
-- Download payslips as PDF (simulation)
-- Monthly payroll reports
-- Detailed breakdown of earnings and deductions
-
-## Installation
-
-1. Clone or download the repository
-2. Open `index.html` in a web browser
-3. Or serve with a local server:
+1. Install dependencies:
 
 ```bash
-python -m http.server 8000
+npm install
 ```
 
-Then visit `http://localhost:8000`
+2. Start the server:
 
-## Usage
+```bash
+npm start
+```
 
-1. **Dashboard Tab**: View payroll summary and charts
-2. **Employees Tab**: Add, view, and manage employees
-3. **Payroll Tab**: View detailed payroll information with filtering
-4. **Reports Tab**: Generate and download payslips
+3. Open your browser at:
 
-## Data Storage
+```text
+http://localhost:3000
+```
 
-All employee data is stored in browser's localStorage and persists across sessions.
+## Features
+- Admin login with authentication
+- Add, edit, and delete employees
+- Department filtering and payroll summaries
+- Automatic payroll calculations
+- Real PDF payslip export using jsPDF
+- SQLite data persistence
+- Responsive dashboard UI
 
-## Technologies Used
-- HTML5
-- CSS3 (with responsive design)
-- Vanilla JavaScript (ES6+)
-- LocalStorage API
+## Project structure
+- `server.js` – Express backend and API routes
+- `public/index.html` – app UI
+- `public/style.css` – styles
+- `public/script.js` – frontend logic
+- `payroll.db` – SQLite database generated automatically
 
-## Files
-- `index.html` – Application structure
-- `style.css` – Styling and responsive design
-- `script.js` – Business logic and data management
+## Notes
+The app stores payroll data in a local SQLite database file named `payroll.db` in the project root.
