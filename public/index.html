@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Payroll Management System</title>
     <link rel="stylesheet" href="/style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.0/jspdf.umd.min.js"></script>
   </head>
   <body>
@@ -15,15 +16,15 @@
         <form id="loginForm">
           <label>
             Username
-            <input type="text" id="username" placeholder="admin" required />
+            <input type="text" id="username" placeholder="admin" value="admin" />
           </label>
           <label>
             Password
-            <input type="password" id="password" placeholder="admin123" required />
+            <input type="password" id="password" placeholder="admin123" value="admin123" />
           </label>
           <button type="submit" class="primary-btn full">Login</button>
         </form>
-        <p class="login-caption">Default admin credentials: admin / admin123</p>
+        <p class="login-caption">Default: admin / admin123</p>
       </div>
     </div>
 
@@ -48,38 +49,85 @@
         </nav>
 
         <main class="dashboard">
+          <!-- Dashboard Tab -->
           <section id="dashboard" class="tab-content active">
             <div class="stats-grid">
               <div class="stat-card accent-blue">
+                <div class="stat-icon">👥</div>
                 <span>Total Employees</span>
                 <strong id="totalEmployees">0</strong>
               </div>
               <div class="stat-card accent-green">
+                <div class="stat-icon">💰</div>
                 <span>Gross Payroll</span>
                 <strong id="grossPayroll">$0</strong>
               </div>
               <div class="stat-card accent-orange">
+                <div class="stat-icon">📉</div>
                 <span>Total Deductions</span>
                 <strong id="totalDeductions">$0</strong>
               </div>
               <div class="stat-card accent-purple">
+                <div class="stat-icon">✓</div>
                 <span>Net Payroll</span>
                 <strong id="netPayroll">$0</strong>
               </div>
             </div>
 
-            <div class="panels-row">
-              <div class="panel half">
-                <h2>Department Summary</h2>
-                <div id="deptChart" class="chart"></div>
+            <div class="panels-row double">
+              <div class="panel">
+                <h2>Department Distribution</h2>
+                <canvas id="deptChart"></canvas>
               </div>
-              <div class="panel half">
-                <h2>Salary Bands</h2>
-                <div id="salaryChart" class="chart"></div>
+              <div class="panel">
+                <h2>Salary Analysis</h2>
+                <canvas id="salaryChart"></canvas>
+              </div>
+            </div>
+
+            <div class="panels-row double">
+              <div class="panel">
+                <h2>Pay Breakdown</h2>
+                <canvas id="payBreakdownChart"></canvas>
+              </div>
+              <div class="panel">
+                <h2>Top Earners</h2>
+                <div id="topEarnersTable" class="mini-table"></div>
+              </div>
+            </div>
+
+            <div class="panel full-width">
+              <h2>Payroll Summary</h2>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <label>Average Salary</label>
+                  <strong id="avgSalary">$0</strong>
+                </div>
+                <div class="summary-item">
+                  <label>Highest Salary</label>
+                  <strong id="maxSalary">$0</strong>
+                </div>
+                <div class="summary-item">
+                  <label>Lowest Salary</label>
+                  <strong id="minSalary">$0</strong>
+                </div>
+                <div class="summary-item">
+                  <label>Total Tax Withheld</label>
+                  <strong id="totalTax">$0</strong>
+                </div>
+                <div class="summary-item">
+                  <label>Total Bonuses</label>
+                  <strong id="totalBonus">$0</strong>
+                </div>
+                <div class="summary-item">
+                  <label>Total Overtime</label>
+                  <strong id="totalOvertime">$0</strong>
+                </div>
               </div>
             </div>
           </section>
 
+          <!-- Employees Tab -->
           <section id="employees" class="tab-content">
             <div class="panel form-panel">
               <div class="section-heading">
@@ -187,6 +235,7 @@
             </div>
           </section>
 
+          <!-- Payroll Tab -->
           <section id="payroll" class="tab-content">
             <div class="panel">
               <div class="section-heading">
@@ -226,10 +275,15 @@
             </div>
           </section>
 
+          <!-- Reports Tab -->
           <section id="reports" class="tab-content">
             <div class="panel">
               <div class="section-heading">
                 <h2>Payslips & Reports</h2>
+              </div>
+              <div class="filter-group">
+                <button id="exportCsvBtn" class="primary-btn">Export CSV</button>
+                <button id="exportAllPdfBtn" class="secondary-btn">Export All PDFs</button>
               </div>
             </div>
             <div id="payslipList" class="payslip-grid"></div>
@@ -238,6 +292,7 @@
       </div>
     </div>
 
+    <!-- Employee Modal -->
     <div id="employeeModal" class="modal">
       <div class="modal-content">
         <span class="close">&times;</span>
@@ -250,6 +305,7 @@
       </div>
     </div>
 
+    <!-- Edit Modal -->
     <div id="editModal" class="modal">
       <div class="modal-content">
         <span class="close edit-close">&times;</span>

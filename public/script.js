@@ -4,7 +4,8 @@ const state = {
   employees: [],
   payroll: [],
   selectedEmployeeId: null,
-  currentUser: null
+  currentUser: null,
+  charts: {}
 };
 
 const loginView = document.getElementById('loginView');
@@ -19,12 +20,22 @@ const payslipList = document.getElementById('payslipList');
 const deptFilter = document.getElementById('deptFilter');
 const deptChart = document.getElementById('deptChart');
 const salaryChart = document.getElementById('salaryChart');
+const payBreakdownChart = document.getElementById('payBreakdownChart');
+const topEarnersTable = document.getElementById('topEarnersTable');
 const totalEmployees = document.getElementById('totalEmployees');
 const grossPayroll = document.getElementById('grossPayroll');
 const totalDeductions = document.getElementById('totalDeductions');
 const netPayroll = document.getElementById('netPayroll');
+const avgSalary = document.getElementById('avgSalary');
+const maxSalary = document.getElementById('maxSalary');
+const minSalary = document.getElementById('minSalary');
+const totalTax = document.getElementById('totalTax');
+const totalBonus = document.getElementById('totalBonus');
+const totalOvertime = document.getElementById('totalOvertime');
 const employeeModal = document.getElementById('employeeModal');
 const editModal = document.getElementById('editModal');
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+const exportAllPdfBtn = document.getElementById('exportAllPdfBtn');
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', {
@@ -73,10 +84,6 @@ async function loadEmployees() {
     state.employees = await apiFetch('/employees');
     populateDepartments();
     renderEmployeeTable();
-    renderPayrollTable();
-    renderPayslips();
-    renderSummary();
-    renderCharts();
   } catch (error) {
     console.error(error);
   }
@@ -86,18 +93,8 @@ async function loadPayroll() {
   try {
     state.payroll = await apiFetch('/payroll');
     renderPayrollTable();
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-async function loadSummary() {
-  try {
-    const summary = await apiFetch('/summary');
-    totalEmployees.textContent = summary.totalEmployees;
-    grossPayroll.textContent = formatCurrency(summary.grossPayroll);
-    totalDeductions.textContent = formatCurrency(summary.totalDeductions);
-    netPayroll.textContent = formatCurrency(summary.netPayroll);
+    renderPayslips();
+    updateDashboard();
   } catch (err) {
     console.error(err);
   }
@@ -188,56 +185,152 @@ function renderPayslips() {
       <p><strong>Tax:</strong> ${formatCurrency(employee.taxAmount)}</p>
       <p><strong>Insurance:</strong> ${formatCurrency(employee.health_insurance)}</p>
       <p><strong>Deductions:</strong> ${formatCurrency(employee.deductions)}</p>
-      <p style="font-size:1.1rem; color: var(--success);"><strong>Net Pay: ${formatCurrency(employee.net)}</strong></p>
+      <p class="net-pay"><strong>Net Pay: ${formatCurrency(employee.net)}</strong></p>
       <button class="primary-btn full export-btn" data-id="${employee.id}" style="margin-top: 12px;">Download PDF</button>
     `;
     payslipList.appendChild(card);
   });
 }
 
-function renderSummary() {
-  const summary = state.payroll.reduce(
-    (acc, item) => {
-      acc.totalEmployees += 1;
-      acc.grossPayroll += Number(item.gross || 0);
-      acc.totalDeductions += Number(item.totalDeductions || 0);
-      acc.netPayroll += Number(item.net || 0);
-      return acc;
-    },
-    { totalEmployees: 0, grossPayroll: 0, totalDeductions: 0, netPayroll: 0 }
-  );
+function updateDashboard() {
+  // Stats
+  const total = state.payroll.length;
+  const gross = state.payroll.reduce((sum, item) => sum + Number(item.gross || 0), 0);
+  const deductions = state.payroll.reduce((sum, item) => sum + Number(item.totalDeductions || 0), 0);
+  const net = state.payroll.reduce((sum, item) => sum + Number(item.net || 0), 0);
 
-  totalEmployees.textContent = summary.totalEmployees;
-  grossPayroll.textContent = formatCurrency(summary.grossPayroll);
-  totalDeductions.textContent = formatCurrency(summary.totalDeductions);
-  netPayroll.textContent = formatCurrency(summary.netPayroll);
+  totalEmployees.textContent = total;
+  grossPayroll.textContent = formatCurrency(gross);
+  totalDeductions.textContent = formatCurrency(deductions);
+  netPayroll.textContent = formatCurrency(net);
+
+  // Additional summary stats
+  const salaries = state.payroll.map((item) => Number(item.base_salary || 0));
+  const avg = salaries.length > 0 ? salaries.reduce((a, b) => a + b, 0) / salaries.length : 0;
+  const max = Math.max(...salaries, 0);
+  const min = salaries.length > 0 ? Math.min(...salaries) : 0;
+  const totalTaxAmount = state.payroll.reduce((sum, item) => sum + Number(item.taxAmount || 0), 0);
+  const totalBonusAmount = state.payroll.reduce((sum, item) => sum + Number(item.bonus || 0), 0);
+  const totalOvertimeAmount = state.payroll.reduce((sum, item) => sum + Number(item.overtime || 0), 0);
+
+  avgSalary.textContent = formatCurrency(avg);
+  maxSalary.textContent = formatCurrency(max);
+  minSalary.textContent = formatCurrency(min);
+  totalTax.textContent = formatCurrency(totalTaxAmount);
+  totalBonus.textContent = formatCurrency(totalBonusAmount);
+  totalOvertime.textContent = formatCurrency(totalOvertimeAmount);
+
+  // Charts
+  renderCharts();
+  renderTopEarners();
 }
 
 function renderCharts() {
+  // Department Chart
   const deptCounts = {};
-  const salaryRanges = { '<$4k': 0, '$4k-$5k': 0, '$5k-$6k': 0, '>$6k': 0 };
-
-  state.employees.forEach((employee) => {
-    deptCounts[employee.department] = (deptCounts[employee.department] || 0) + 1;
-    const salary = Number(employee.base_salary || 0);
-    if (salary < 4000) salaryRanges['<$4k'] += 1;
-    else if (salary < 5000) salaryRanges['$4k-$5k'] += 1;
-    else if (salary < 6000) salaryRanges['$5k-$6k'] += 1;
-    else salaryRanges['>$6k'] += 1;
+  state.payroll.forEach((emp) => {
+    deptCounts[emp.department] = (deptCounts[emp.department] || 0) + 1;
   });
 
-  deptChart.innerHTML = Object.entries(deptCounts)
-    .map(([department, count]) => `<div><strong>${department}:</strong> ${count}</div>`)
-    .join('');
+  if (state.charts.deptChart) state.charts.deptChart.destroy();
+  state.charts.deptChart = new Chart(deptChart, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(deptCounts),
+      datasets: [{
+        data: Object.values(deptCounts),
+        backgroundColor: ['#2b6cf6', '#1aa06a', '#f39c12', '#e74c3c', '#9b59b6'],
+        borderColor: 'white',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
 
-  salaryChart.innerHTML = Object.entries(salaryRanges)
-    .map(([range, count]) => `<div><strong>${range}:</strong> ${count}</div>`)
-    .join('');
+  // Salary Band Chart
+  const salaryRanges = { '<$4k': 0, '$4k-$5k': 0, '$5k-$6k': 0, '>$6k': 0 };
+  state.payroll.forEach((emp) => {
+    const sal = Number(emp.base_salary || 0);
+    if (sal < 4000) salaryRanges['<$4k']++;
+    else if (sal < 5000) salaryRanges['$4k-$5k']++;
+    else if (sal < 6000) salaryRanges['$5k-$6k']++;
+    else salaryRanges['>$6k']++;
+  });
+
+  if (state.charts.salaryChart) state.charts.salaryChart.destroy();
+  state.charts.salaryChart = new Chart(salaryChart, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(salaryRanges),
+      datasets: [{
+        label: 'Employees',
+        data: Object.values(salaryRanges),
+        backgroundColor: '#2b6cf6',
+        borderColor: '#204dbe',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  // Pay Breakdown Chart
+  const totalBase = state.payroll.reduce((sum, item) => sum + Number(item.base_salary || 0), 0);
+  const totalOT = state.payroll.reduce((sum, item) => sum + Number(item.overtime || 0), 0);
+  const totalBon = state.payroll.reduce((sum, item) => sum + Number(item.bonus || 0), 0);
+  const totalAllow = state.payroll.reduce((sum, item) => sum + Number(item.allowances || 0), 0);
+
+  if (state.charts.payBreakdownChart) state.charts.payBreakdownChart.destroy();
+  state.charts.payBreakdownChart = new Chart(payBreakdownChart, {
+    type: 'pie',
+    data: {
+      labels: ['Base Salary', 'Overtime', 'Bonus', 'Allowances'],
+      datasets: [{
+        data: [totalBase, totalOT, totalBon, totalAllow],
+        backgroundColor: ['#2b6cf6', '#1aa06a', '#f39c12', '#9b59b6'],
+        borderColor: 'white',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+}
+
+function renderTopEarners() {
+  const sorted = [...state.payroll].sort((a, b) => Number(b.gross || 0) - Number(a.gross || 0)).slice(0, 5);
+  topEarnersTable.innerHTML = '';
+
+  sorted.forEach((emp) => {
+    const row = document.createElement('div');
+    row.className = 'mini-table-row';
+    row.innerHTML = `
+      <span>${emp.name}</span>
+      <span>${formatCurrency(emp.gross)}</span>
+    `;
+    topEarnersTable.appendChild(row);
+  });
 }
 
 async function refreshAll() {
   if (!state.token) return;
-  await Promise.all([loadEmployees(), loadPayroll(), loadSummary()]);
+  await Promise.all([loadEmployees(), loadPayroll()]);
 }
 
 async function login(username, password) {
@@ -278,8 +371,6 @@ loginForm.addEventListener('submit', async (event) => {
 
 logoutBtn.addEventListener('click', logout);
 
-departmentSelect = document.getElementById('department');
-
 employeeForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const payload = {
@@ -311,8 +402,6 @@ employeeForm.addEventListener('submit', async (event) => {
   }
 });
 
-departmentSelect = document.getElementById('department');
-
 document.addEventListener('click', async (event) => {
   const target = event.target;
 
@@ -335,14 +424,7 @@ document.addEventListener('click', async (event) => {
     employeeModal.classList.add('open');
   }
 
-  if (target.classList.contains('payslip-btn')) {
-    const id = Number(target.dataset.id);
-    const employee = state.payroll.find((item) => item.id === id);
-    if (!employee) return;
-    generatePdf(employee);
-  }
-
-  if (target.classList.contains('export-btn')) {
+  if (target.classList.contains('payslip-btn') || target.classList.contains('export-btn')) {
     const id = Number(target.dataset.id);
     const employee = state.payroll.find((item) => item.id === id);
     if (employee) generatePdf(employee);
@@ -353,7 +435,7 @@ function generatePdf(employee) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFontSize(18);
-  doc.text('Payroll Payslip', 20, 20);
+  doc.text('PAYROLL PAYSLIP', 20, 20);
   doc.setFontSize(11);
   doc.text(`Employee: ${employee.name}`, 20, 40);
   doc.text(`Employee ID: ${employee.employee_id}`, 20, 48);
@@ -364,7 +446,7 @@ function generatePdf(employee) {
   doc.text(`Insurance: ${formatCurrency(employee.health_insurance)}`, 20, 98);
   doc.text(`Deductions: ${formatCurrency(employee.deductions)}`, 20, 106);
   doc.setFontSize(14);
-  doc.text(`Net Pay: ${formatCurrency(employee.net)}`, 20, 126);
+  doc.text(`NET PAY: ${formatCurrency(employee.net)}`, 20, 126);
   doc.save(`${employee.name.replace(/\s+/g, '_')}_payslip.pdf`);
 }
 
@@ -415,6 +497,48 @@ document.getElementById('editForm').addEventListener('submit', async (event) => 
 document.querySelector('.close').addEventListener('click', () => employeeModal.classList.remove('open'));
 document.querySelector('.edit-close').addEventListener('click', () => editModal.classList.remove('open'));
 deptFilter.addEventListener('change', renderPayrollTable);
+
+// Tab Navigation
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+exportCsvBtn.addEventListener('click', () => {
+  if (!state.payroll.length) return alert('No payroll data to export.');
+  const headers = ['Name', 'Department', 'Base Salary', 'Overtime', 'Bonus', 'Allowances', 'Gross', 'Tax', 'Insurance', 'Deductions', 'Net Pay'];
+  const rows = state.payroll.map((emp) => [
+    emp.name,
+    emp.department,
+    emp.base_salary,
+    emp.overtime,
+    emp.bonus,
+    emp.allowances,
+    emp.gross,
+    emp.taxAmount,
+    emp.health_insurance,
+    emp.deductions,
+    emp.net
+  ]);
+  const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'payroll_export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+exportAllPdfBtn.addEventListener('click', () => {
+  if (!state.payroll.length) return alert('No payroll data to export.');
+  alert('Generating PDFs for all employees... This may take a moment.');
+  state.payroll.forEach((emp) => generatePdf(emp));
+});
 
 async function bootstrap() {
   setAuthUI();
